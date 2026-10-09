@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "tsx tests/migrate-test-db.ts && vitest run",
     "test:watch": "vitest",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
