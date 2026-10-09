@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { ApiError } from "../lib/api";
 import { btnPrimary } from "../lib/styles";
+import { IconEye, IconEyeOff } from "../components/common/Icons";
 
 export default function Login() {
   useDocumentTitle("Sign In | Kiln & Leaf Ops");
@@ -14,6 +15,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(
     searchParams.get("expired") ? "Your session has expired. Please sign in again." : null,
   );
@@ -148,20 +150,31 @@ export default function Login() {
               Password
             </label>
           </div>
-          <input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isSubmitting}
-            aria-invalid={Boolean(fieldErrors.password)}
-            aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
-            className={`mt-1.5 block w-full rounded-ctl border px-3.5 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
-              fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
-            }`}
-            placeholder="••••••••"
-            autoComplete="current-password"
-          />
+          <div className="relative mt-1.5">
+            <input
+              id="login-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isSubmitting}
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
+              className={`block w-full rounded-ctl border pl-3.5 pr-10 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
+                fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
+              }`}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-mute hover:text-ink transition focus:outline-none"
+            >
+              {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+            </button>
+          </div>
           {fieldErrors.password && (
             <p id="login-password-error" className="mt-1 text-xs text-accent">
               {fieldErrors.password}

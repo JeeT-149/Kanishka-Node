@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { ApiError } from "../lib/api";
 import { btnPrimary } from "../lib/styles";
+import { IconEye, IconEyeOff } from "../components/common/Icons";
 
 export default function Register() {
   useDocumentTitle("Register Account | Kiln & Leaf Ops");
@@ -13,9 +14,18 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Live password condition checks
+  const hasMinLen = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(password);
+  const allConditionsMet = hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +37,16 @@ export default function Register() {
     if (!email.trim()) errs.email = "Email address is required";
     if (!password) {
       errs.password = "Password is required";
-    } else if (password.length < 8) {
+    } else if (!hasMinLen) {
       errs.password = "Password must be at least 8 characters long";
-    } else if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
-      errs.password = "Password must contain at least one letter and one number";
+    } else if (!hasUpper) {
+      errs.password = "Password must contain at least one uppercase letter (A–Z)";
+    } else if (!hasLower) {
+      errs.password = "Password must contain at least one lowercase letter (a–z)";
+    } else if (!hasNumber) {
+      errs.password = "Password must contain at least one number (0–9)";
+    } else if (!hasSpecial) {
+      errs.password = "Password must contain at least one special character (!@#$%...)";
     }
 
     if (Object.keys(errs).length > 0) {
@@ -57,7 +73,7 @@ export default function Register() {
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col px-5 py-16 md:py-24">
+    <div className="mx-auto flex max-w-xl md:max-w-2xl flex-col px-5 py-16 md:py-24">
       <div className="text-center">
         <span className="font-mono text-xs font-semibold uppercase tracking-widest text-accent">
           Operations Onboarding
@@ -128,33 +144,108 @@ export default function Register() {
           )}
         </div>
 
-        <div>
-          <label htmlFor="reg-password" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-            Password
-          </label>
-          <input
-            id="reg-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isSubmitting}
-            aria-invalid={Boolean(fieldErrors.password)}
-            aria-describedby={fieldErrors.password ? "reg-password-error" : "reg-password-hint"}
-            className={`mt-1.5 block w-full rounded-ctl border px-3.5 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
-              fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <div className="md:col-span-7">
+            <label htmlFor="reg-password" className="block text-xs font-semibold uppercase tracking-wider text-mute">
+              Password
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                id="reg-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby="reg-password-hint-box"
+                className={`block w-full rounded-ctl border pl-3.5 pr-10 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
+                  fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
+                }`}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-mute hover:text-ink transition focus:outline-none"
+              >
+                {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+              </button>
+            </div>
+            {fieldErrors.password && (
+              <p id="reg-password-error" className="mt-1 text-xs text-accent">
+                {fieldErrors.password}
+              </p>
+            )}
+          </div>
+
+          {/* Dynamic real-time hint panel beside the password field */}
+          <div
+            id="reg-password-hint-box"
+            className={`md:col-span-5 rounded-ctl border p-3 text-xs transition md:mt-6 ${
+              password.length === 0
+                ? "border-line bg-card/60 text-mute"
+                : allConditionsMet
+                  ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-900"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-900"
             }`}
-            placeholder="At least 8 characters"
-            autoComplete="new-password"
-          />
-          {fieldErrors.password ? (
-            <p id="reg-password-error" className="mt-1 text-xs text-accent">
-              {fieldErrors.password}
-            </p>
-          ) : (
-            <p id="reg-password-hint" className="mt-1 text-xs text-mute">
-              Must be 8–72 characters and contain at least one letter and one number.
-            </p>
-          )}
+          >
+            <div className="flex items-center justify-between pb-1.5 border-b border-current/10">
+              <span className="font-semibold uppercase tracking-wider text-[10px]">
+                Requirements
+              </span>
+              <span
+                className={`font-semibold text-[10px] px-1.5 py-0.5 rounded tracking-wide ${
+                  password.length === 0
+                    ? "bg-paper text-mute border border-line"
+                    : allConditionsMet
+                      ? "bg-emerald-600 text-white"
+                      : "bg-amber-600 text-white"
+                }`}
+              >
+                {password.length === 0
+                  ? "Pending"
+                  : allConditionsMet
+                    ? "All Met ✓"
+                    : "Not Met ✕"}
+              </span>
+            </div>
+
+            <ul className="mt-2 space-y-1 text-[11px]">
+              <li className={`flex items-center gap-1.5 transition ${hasUpper ? "text-emerald-700 font-medium" : "text-mute"}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] ${hasUpper ? "bg-emerald-600 text-white" : "bg-paper border border-line text-mute"}`}>
+                  {hasUpper ? "✓" : "•"}
+                </span>
+                Uppercase letter (A–Z)
+              </li>
+              <li className={`flex items-center gap-1.5 transition ${hasLower ? "text-emerald-700 font-medium" : "text-mute"}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] ${hasLower ? "bg-emerald-600 text-white" : "bg-paper border border-line text-mute"}`}>
+                  {hasLower ? "✓" : "•"}
+                </span>
+                Lowercase letter (a–z)
+              </li>
+              <li className={`flex items-center gap-1.5 transition ${hasNumber ? "text-emerald-700 font-medium" : "text-mute"}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] ${hasNumber ? "bg-emerald-600 text-white" : "bg-paper border border-line text-mute"}`}>
+                  {hasNumber ? "✓" : "•"}
+                </span>
+                Number (0–9)
+              </li>
+              <li className={`flex items-center gap-1.5 transition ${hasSpecial ? "text-emerald-700 font-medium" : "text-mute"}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] ${hasSpecial ? "bg-emerald-600 text-white" : "bg-paper border border-line text-mute"}`}>
+                  {hasSpecial ? "✓" : "•"}
+                </span>
+                Special character (!@#$...)
+              </li>
+              <li className={`flex items-center gap-1.5 transition ${hasMinLen ? "text-emerald-700 font-medium" : "text-mute"}`}>
+                <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] ${hasMinLen ? "bg-emerald-600 text-white" : "bg-paper border border-line text-mute"}`}>
+                  {hasMinLen ? "✓" : "•"}
+                </span>
+                At least 8 characters
+              </li>
+            </ul>
+          </div>
         </div>
 
         <button

@@ -278,7 +278,7 @@ The database seeder (`npm run db:seed`) creates three accounts demonstrating reg
 | Role | Name | Email | Password | Purpose |
 |---|---|---|---|---|
 | **Admin** | Operations Admin | `admin@example.com` | `Admin@123` | Full administrative visibility, user directory, status updates |
-| **User** | Divya Roaster | `user@example.com` | `User@123` | Primary regular user; manages own roasting/cleaning tasks |
+| **User** | Divyajeet Roaster | `user@example.com` | `User@123` | Primary regular user; manages own roasting/cleaning tasks |
 | **User** | Kanishka Cupper | `user2@example.com` | `User@1234` | Second regular user; verifies task isolation between users |
 
 ---
