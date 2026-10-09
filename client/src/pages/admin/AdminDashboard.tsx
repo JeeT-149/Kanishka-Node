@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useDebounce } from "../../hooks/useDebounce";
@@ -6,7 +6,7 @@ import { apiRequest, ApiError } from "../../lib/api";
 import { StatusBadge, type TaskStatusString } from "../../components/tasks/StatusBadge";
 import { TaskListSkeleton } from "../../components/feedback/TaskListSkeleton";
 import { ErrorState } from "../../components/feedback/ErrorState";
-import { btnPrimary } from "../../lib/styles";
+import { btnPrimary, btnGhost } from "../../lib/styles";
 import { IconSearch } from "../../components/common/Icons";
 
 interface AdminStats {
@@ -52,6 +52,21 @@ const ALL_STATUSES: TaskStatusString[] = [
 export default function AdminDashboard() {
   useDocumentTitle("Admin Console | Kiln & Leaf Ops");
 
+  // OTP 2FA State (Phase 14)
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [consoleToken, setConsoleToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem("admin_console_token");
+    } catch {
+      return null;
+    }
+  });
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -73,14 +88,92 @@ export default function AdminDashboard() {
   const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
+  // Check OTP requirement configuration
+  useEffect(() => {
+    async function checkConfig() {
+      try {
+        const config = await apiRequest<{ otpRequired: boolean }>("/admin/config");
+        setOtpRequired(config.otpRequired);
+      } catch {
+        // Default to not required if check fails
+      }
+    }
+    checkConfig();
+  }, []);
+
+  const handleRequestOtp = async () => {
+    setIsRequestingOtp(true);
+    setOtpError(null);
+    setOtpSentMessage(null);
+    try {
+      const res = await apiRequest<{ message: string }>("/admin/otp/request", {
+        method: "POST",
+      });
+      setOtpSentMessage(res.message);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError("Failed to request verification code.");
+      }
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      setOtpError("Verification code must be 6 digits.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await apiRequest<{ consoleToken: string }>("/admin/otp/verify", {
+        method: "POST",
+        body: JSON.stringify({ code: otpCode }),
+      });
+      try {
+        sessionStorage.setItem("admin_console_token", res.consoleToken);
+      } catch {
+        // Ignore session storage errors
+      }
+      setConsoleToken(res.consoleToken);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setOtpError(err.message);
+      } else {
+        setOtpError("Verification failed.");
+      }
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const getCustomHeaders = useCallback(() => {
+    const headers: Record<string, string> = {};
+    if (consoleToken) {
+      headers["X-Admin-Console-Token"] = consoleToken;
+    }
+    return headers;
+  }, [consoleToken]);
+
   useEffect(() => {
     let isMounted = true;
 
     async function loadStatsAndUsers() {
+      if (otpRequired && !consoleToken) {
+        setLoadingStats(false);
+        return;
+      }
+
       try {
         const [statsRes, usersRes] = await Promise.all([
-          apiRequest<AdminStats>("/admin/stats"),
-          apiRequest<{ users: AdminUser[] }>("/admin/users"),
+          apiRequest<AdminStats>("/admin/stats", { headers: getCustomHeaders() }),
+          apiRequest<{ users: AdminUser[] }>("/admin/users", { headers: getCustomHeaders() }),
         ]);
         if (isMounted) {
           setStats(statsRes);
@@ -106,12 +199,17 @@ export default function AdminDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [refreshTrigger]);
+  }, [refreshTrigger, otpRequired, consoleToken, getCustomHeaders]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadTasks() {
+      if (otpRequired && !consoleToken) {
+        setLoadingTasks(false);
+        return;
+      }
+
       const query = new URLSearchParams();
       query.set("page", String(page));
       query.set("limit", "10");
@@ -150,7 +248,7 @@ export default function AdminDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [page, statusFilter, userFilter, debouncedSearch, refreshTrigger]);
+  }, [page, statusFilter, userFilter, debouncedSearch, refreshTrigger, otpRequired, consoleToken]);
 
   const handleInlineStatusChange = async (taskId: number, newStatus: TaskStatusString) => {
     setUpdatingTaskId(taskId);
@@ -178,6 +276,64 @@ export default function AdminDashboard() {
       setUpdatingTaskId(null);
     }
   };
+
+  // If 2FA OTP is required and user hasn't verified console token yet
+  if (otpRequired && !consoleToken) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-20 text-center">
+        <span className="font-mono text-xs font-semibold uppercase tracking-widest text-accent">
+          Security Verification Required
+        </span>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
+          Admin Console Two-Factor
+        </h1>
+        <p className="mt-2 text-xs text-mute leading-relaxed">
+          The administrator console is protected by secondary verification. Request a 6-digit code to access metrics and lifecycle tables.
+        </p>
+
+        {otpSentMessage && (
+          <div role="status" className="mt-4 rounded border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900">
+            {otpSentMessage} (In development, check the server console).
+          </div>
+        )}
+
+        {otpError && (
+          <div role="alert" className="mt-4 rounded border border-accent/20 bg-accent-soft/30 p-3 text-xs text-accent">
+            {otpError}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-4">
+          <button
+            type="button"
+            onClick={handleRequestOtp}
+            disabled={isRequestingOtp}
+            className={`${btnGhost} w-full`}
+          >
+            {isRequestingOtp ? "Dispatching Code..." : "Send Verification Code"}
+          </button>
+
+          <form onSubmit={handleVerifyOtp} className="space-y-3 pt-2">
+            <input
+              type="text"
+              maxLength={6}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="Enter 6-digit code"
+              className="w-full text-center tracking-widest font-mono text-lg rounded-ctl border border-line bg-card py-2 focus:border-accent focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={isVerifyingOtp || otpCode.length !== 6}
+              className={`${btnPrimary} w-full`}
+            >
+              {isVerifyingOtp ? "Verifying..." : "Verify & Enter Console"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (error && !stats) {
     return (

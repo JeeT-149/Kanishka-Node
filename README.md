@@ -415,13 +415,30 @@ All endpoints are prefixed with `/api`. Errors conform to:
           "role": "admin",
           "taskCount": 2,
           "createdAt": "2026-10-09T09:00:00.000Z",
-          "updatedAt": "2026-10-09T09:00:00.000Z"
         }
       ]
     }
     ```
 
+### 5. Optional Admin Console 2FA OTP (Phase 14)
+When `ADMIN_OTP_ENABLED=true`, admin management routes require a scoped `consoleToken` (`x-admin-console-token` header or Bearer) obtained via a 2-step OTP flow:
+- **`GET /api/admin/config`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Response 200**: `{ "otpRequired": boolean }`
+- **`POST /api/admin/otp/request`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Description**: Generates a 6-digit cryptographic OTP, hashes it in PostgreSQL, and sends via Nodemailer or prints to server console (`OTP_DELIVERY=console`).
+  - **Response 200**: `{ "message": "Verification code dispatched.", "delivery": "console" | "smtp" }`
+- **`POST /api/admin/otp/verify`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Body**: `{ "code": "123456" }`
+  - **Description**: Verifies code with max 5 attempts within 5 minutes expiry. Issues a 30-minute JWT with `{ scope: "admin-console" }`.
+  - **Response 200**: `{ "consoleToken": "eyJhbGciOiJIUzI1NiIsIn...", "expiresIn": 1800 }`
+
+> **Note**: `ADMIN_OTP_ENABLED` is set to `false` by default so reviewers can run and verify the standard Postman collection without needing SMTP credentials or 2FA hurdles.
+
 ---
+
 
 ## Authorization Matrix
 

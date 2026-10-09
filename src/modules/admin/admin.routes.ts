@@ -2,7 +2,14 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler.js";
 import { authenticate } from "../../middleware/authenticate.js";
 import { requireRole } from "../../middleware/requireRole.js";
-import { handleGetStats, handleGetUsers } from "./admin.controller.js";
+import { requireConsoleToken } from "../../middleware/requireConsoleToken.js";
+import {
+  handleGetConfig,
+  handleGetStats,
+  handleGetUsers,
+  handleRequestOtp,
+  handleVerifyOtp,
+} from "./admin.controller.js";
 
 export const adminRouter = Router();
 
@@ -10,8 +17,15 @@ export const adminRouter = Router();
 adminRouter.use(authenticate);
 adminRouter.use(requireRole("admin"));
 
-// Admin stats
-adminRouter.get("/stats", asyncHandler(handleGetStats));
+// Configuration check
+adminRouter.get("/config", asyncHandler(handleGetConfig));
 
-// Admin user directory with task counts
-adminRouter.get("/users", asyncHandler(handleGetUsers));
+// Optional Admin OTP endpoints
+adminRouter.post("/otp/request", asyncHandler(handleRequestOtp));
+adminRouter.post("/otp/verify", asyncHandler(handleVerifyOtp));
+
+// Admin stats (protected by console token when ADMIN_OTP_ENABLED=true)
+adminRouter.get("/stats", requireConsoleToken, asyncHandler(handleGetStats));
+
+// Admin user directory (protected by console token when ADMIN_OTP_ENABLED=true)
+adminRouter.get("/users", requireConsoleToken, asyncHandler(handleGetUsers));

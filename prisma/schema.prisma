@@ -29,6 +29,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   tasks Task[]
+  adminOtps AdminOtp[]
 
   @@map("users")
 }
@@ -47,4 +48,17 @@ model Task {
   @@index([userId])
   @@index([status])
   @@map("tasks")
+}
+
+model AdminOtp {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String   @map("code_hash")
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("admin_otps")
 }
