@@ -1,13 +1,36 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Production build outputs
 dist/
+**/dist/
 build/
-.cache/
-.env*
-.DS_Store
-.vite/
-vite.config.*.timestamp-*
-*.tsbuildinfo
-*-debug.log*
+**/build/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!client/.env.example
+
+# Logs and system
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+
+# Tooling and caches
+.cache/
+.vite/
+*.tsbuildinfo
 .tmp-*
+coverage/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
