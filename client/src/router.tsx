@@ -11,6 +11,7 @@ import TaskList from "./pages/tasks/TaskList";
 import TaskCreate from "./pages/tasks/TaskCreate";
 import TaskDetail from "./pages/tasks/TaskDetail";
 import TaskEdit from "./pages/tasks/TaskEdit";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -61,11 +62,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "admin",
-            element: (
-              <div className="mx-auto max-w-[1280px] px-5 py-12 md:px-8">
-                <h1 className="font-display text-3xl font-semibold text-ink">Admin Dashboard</h1>
-              </div>
-            ),
+            Component: AdminDashboard,
           },
         ],
       },
