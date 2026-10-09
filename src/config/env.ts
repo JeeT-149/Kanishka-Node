@@ -1,7 +1,11 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config();
+if (process.env.NODE_ENV === "test") {
+  dotenv.config({ path: ".env.test" });
+} else {
+  dotenv.config();
+}
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
@@ -13,13 +17,13 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().default("http://localhost:5173"),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_ENABLED: z
-    .string()
+    .union([z.boolean(), z.string()])
     .optional()
-    .transform((val) => val === undefined || val === "true" || val === "1"),
+    .transform((val) => val === undefined || val === true || val === "true" || val === "1"),
   ADMIN_OTP_ENABLED: z
-    .string()
+    .union([z.boolean(), z.string()])
     .optional()
-    .transform((val) => val === "true" || val === "1"),
+    .transform((val) => val === true || val === "true" || val === "1"),
   OTP_DELIVERY: z.enum(["console", "smtp"]).default("console"),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
@@ -27,15 +31,14 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default("Kiln & Leaf Ops <ops@example.com>"),
   ALLOW_SEED: z
-    .string()
+    .union([z.boolean(), z.string()])
     .optional()
-    .transform((val) => val === "true" || val === "1"),
+    .transform((val) => val === true || val === "true" || val === "1"),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  // Fail fast on invalid or missing environment variables
   console.error("❌ Invalid environment variables:", JSON.stringify(parsed.error.format(), null, 2));
   process.exit(1);
 }

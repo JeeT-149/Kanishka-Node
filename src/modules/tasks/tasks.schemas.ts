@@ -18,8 +18,11 @@ export const createTaskBodySchema = z
       .max(2000, "Description cannot exceed 2000 characters")
       .optional()
       .nullable(),
+    status: z.any().optional(), // Ignored in service; status forced to Pending
+    userId: z.any().optional(), // Ignored in service; userId from token
+    user_id: z.any().optional(),
   })
-  .strict();
+  .passthrough();
 
 export const updateTaskBodySchema = z
   .object({

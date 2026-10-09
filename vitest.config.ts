@@ -7,5 +7,9 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     exclude: ["client/**", "node_modules/**", "dist/**"],
     testTimeout: 20000,
+    fileParallelism: false,
+    sequence: {
+      concurrent: false,
+    },
   },
 });
