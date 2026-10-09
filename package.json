@@ -17,9 +17,6 @@
     "db:reset": "prisma migrate reset --force",
     "postman": "npx -y newman run postman/Kanishka_Ops.postman_collection.json -e postman/Local.postman_environment.json"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.2",
