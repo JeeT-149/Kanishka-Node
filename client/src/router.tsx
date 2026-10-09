@@ -7,6 +7,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
+import TaskList from "./pages/tasks/TaskList";
+import TaskCreate from "./pages/tasks/TaskCreate";
+import TaskDetail from "./pages/tasks/TaskDetail";
+import TaskEdit from "./pages/tasks/TaskEdit";
 
 export const router = createBrowserRouter([
   {
@@ -35,12 +39,19 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "tasks",
-            element: (
-              <div className="mx-auto max-w-[1280px] px-5 py-12 md:px-8">
-                <h1 className="font-display text-3xl font-semibold text-ink">Operations Tasks</h1>
-                <p className="mt-2 text-mute">Task management workspace.</p>
-              </div>
-            ),
+            Component: TaskList,
+          },
+          {
+            path: "tasks/new",
+            Component: TaskCreate,
+          },
+          {
+            path: "tasks/:id",
+            Component: TaskDetail,
+          },
+          {
+            path: "tasks/:id/edit",
+            Component: TaskEdit,
           },
         ],
       },
