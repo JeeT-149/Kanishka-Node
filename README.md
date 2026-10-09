@@ -491,3 +491,42 @@ AI tooling was utilized during development to assist with boilerplate scaffoldin
 - **Port 5432 already in use**: If a local Postgres service is already running on port 5432, you can either stop the local service (`net stop postgresql-x64-16`) or change the Docker host port mapping in `docker-compose.yml` to `5433:5432` and update `DATABASE_URL` accordingly.
 - **Port 4000 already in use**: Change `PORT=4001` in your `.env` file.
 - **Prisma migration errors on clean clone**: Run `npm run db:reset` in development to recreate the database from migrations.
+
+---
+
+## Untested Vercel Deployment Guide (Phase 15)
+
+> **Important Disclaimer**: This section provides the architectural setup and files for deploying to Vercel, but is **UNTESTED** against live Vercel cloud infrastructure because external cloud deployments cannot be executed from this local sandbox.
+
+The project is structured to allow split or monorepo deployment to Vercel:
+
+### 1. Backend Serverless API (`api/index.ts` + root `vercel.json`)
+- **Serverless Entry**: `api/index.ts` imports and exports the configured Express `createApp()` instance for Vercel's Node runtime.
+- **Routing**: Root `vercel.json` rewrites `/api/(.*)` to `/api/index.ts`.
+- **Prisma Engine Generation**: Root `package.json` defines `"postinstall": "prisma generate"` ensuring the Prisma Client engine binary is compiled during Vercel's build phase.
+- **Database Connection Pooling**: When deploying with serverless functions and hosted PostgreSQL (such as [Neon](https://neon.tech) or [Supabase](https://supabase.com)):
+  - Set `DATABASE_URL` to the pooled connection string (e.g. PgBouncer mode).
+  - Use a direct connection string (`DIRECT_URL`) when running `prisma migrate deploy` in CI/CD build scripts.
+- **Vercel Backend Environment Variables**:
+  ```env
+  DATABASE_URL="postgresql://user:pass@ep-pooler.region.neon.tech/neondb?sslmode=require&pgbouncer=true"
+  JWT_SECRET="<generate-using-crypto.randomBytes(32).toString('hex')>"
+  CLIENT_ORIGIN="https://kanishka-ops-client.vercel.app"
+  NODE_ENV="production"
+  RATE_LIMIT_ENABLED="true"
+  AUTH_RATE_LIMIT_MAX="60"
+  ADMIN_OTP_ENABLED="false"
+  ```
+
+### 2. Frontend React Client (`client/vercel.json`)
+- **SPA Routing**: `client/vercel.json` rewrites all non-asset routes `/(.*)` to `/index.html` to preserve HTML5 client-side routing.
+- **Build Settings**:
+  - Root directory: `client`
+  - Build command: `npm run build`
+  - Output directory: `dist`
+- **Client Environment Variables**:
+  ```env
+  VITE_API_URL="https://kanishka-ops-api.vercel.app/api"
+  VITE_SHOW_DEMO_LOGINS="true"
+  ```
+

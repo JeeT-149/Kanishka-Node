@@ -15,6 +15,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
+    "postinstall": "prisma generate",
     "postman": "npx -y newman run postman/Kanishka_Ops.postman_collection.json -e postman/Local.postman_environment.json"
   },
   "dependencies": {
