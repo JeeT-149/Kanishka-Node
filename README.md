@@ -238,19 +238,36 @@ npm run format
 
 ## Frontend Client (Kiln & Leaf Ops)
 
-The frontend UI is located inside `client/`. It reuses the editorial design system (Fraunces serif headings, warm paper/ink palette, DM Sans, accessible contrast ratios):
+The frontend client is located in `client/` and was designed as an operations portal ("Kiln & Leaf Ops") built on **React 19**, **Vite 8**, **React Router 8**, and **Tailwind CSS v4**.
 
+### Heritage & Design Principles
+- **Design System Reuse**: The client reuses the artisanal editorial typography and color design tokens (Fraunces serif display, DM Sans interface font, warm paper `#f7f4ee`, ink `#161412`, terracotta accent `#8c3a14`) from the candidate's prior React assessment, purposefully adapted from consumer storefront to internal roastery operations.
+- **Accessible Status Indicators**: Task statuses are communicated through both text labels and multi-sensory tone (never color alone):
+  - `Pending`: Neutral stone with muted dot
+  - `In Progress`: Warm terracotta accent with vibrant indicator
+  - `Testing`: Amber tone
+  - `Completed`: Forest emerald green
+- **URL-Driven State**: All task filtering, pagination, and search query state lives in the URL (`?status=&q=&page=`), enabling full browser history navigation and shareable links.
+- **Accessibility & Responsiveness**: Form fields maintain explicit `<label>` bindings, `aria-invalid` flags, `aria-describedby` helper texts, visible focus rings, and full responsiveness across Mobile (390px), Tablet (768px), and Desktop (1440px).
+
+### Client Setup & Running
 ```bash
 # Navigate to the client directory
 cd client
+
+# Configure environment variables
+cp .env.example .env
 
 # Install client dependencies
 npm install
 
 # Start Vite development server
 npm run dev
+
+# Build production bundle
+npm run build
 ```
-The client runs at `http://localhost:5173`.
+The client runs by default at `http://localhost:5173`. Quick-fill buttons are provided on the login screen to instantly authenticate as `admin@example.com`, `user@example.com`, or `user2@example.com`.
 
 ---
 
