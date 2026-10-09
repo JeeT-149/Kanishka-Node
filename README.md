@@ -1,227 +1,459 @@
-# Kiln & Leaf — Storefront
+# Kiln & Leaf Ops — Task Management System
 
-A refined artisanal e-commerce storefront for **Kiln & Leaf Roasters**, a specialty coffee roastery and rare-leaf tea blender based in Bengaluru.
+A robust, enterprise-grade Task Management System API and frontend dashboard built with **Node.js**, **Express**, **TypeScript**, **PostgreSQL 16**, and **Prisma ORM**.
 
-Built with Vite, React 19, TypeScript (strict mode), Tailwind CSS v4, and React Router.
-
-**Live Demo:** [https://kiln-and-leaf.vercel.app](https://kiln-and-leaf.vercel.app) *(Candidate: replace with your deployment URL)*
+This repository was developed as an assessment submission for the **Node.js Developer Intern** position. Authenticated team members manage roastery workflow tasks, while administrators possess elevated privileges to update task lifecycle statuses and review operational metrics across all staff.
 
 ---
 
-## Screenshots
-
-### Desktop Experience
-| Catalog & Filters | Product Detail | Slide-Over Cart Drawer |
-|:---:|:---:|:---:|
-| ![Desktop Catalog](docs/screenshots/desktop-listing.png) | ![Desktop Detail](docs/screenshots/desktop-detail.png) | ![Desktop Drawer](docs/screenshots/desktop-drawer.png) |
-
-### Mobile Experience
-| Mobile Catalog (390px) | Mobile Cart Sheet (390px) |
-|:---:|:---:|
-| ![Mobile Catalog](docs/screenshots/mobile-listing.png) | ![Mobile Drawer](docs/screenshots/mobile-drawer.png) |
-
----
-
-## Features
-
-- **Artisanal Catalog & Data Architecture**: 28 specialty coffees, Indian single-origin estate lots, rare-leaf teas, and precision brew gear sourced from local JSON (`src/data/products.json`).
-- **Dynamic Packaging Art v2**: Zero third-party image dependencies for consumables; packaging SVGs are generated programmatically with large packs filling 65–70% of tile height, readable typography (12px+ titles at card size), and deterministic palette variety. Restored photo imagery for brew gear is strictly preserved.
-- **CSS Subgrid Card Layout**: Cards use `grid-template-rows: subgrid` to ensure title, meta, rating/price, and action tracks align horizontally across each grid row regardless of title line count, eliminating awkward fixed-height hacks.
-- **Responsive Card Interactions (Hover vs Touch)**:
-  - **Hover-capable devices** (`@media (hover: hover)`): The pack image smoothly crossfades to the tasting notes illustration (`-notes.svg`) over 300ms. An inline quick-add button slides up from the bottom of the image tile on hover or keyboard focus (`:focus-within` / `:focus-visible`).
-  - **Touch devices** (`hover: none`): Maintains an accessible full-width button (at least 44px tall) below the price row without hover friction.
-  - **Button States**: Normal ("Add to cart"), Added confirmation ("Added ✓"), Maximum in cart ("Maximum in cart" at 20 units), and disabled Out of Stock with visible labels.
-- **FLIP Grid Reorder Motion**: When changing sort criteria (same product set), cards glide smoothly from their old positions to new coordinates using the First-Last-Invert-Play (FLIP) animation pattern via `useFlipGrid`, animating `transform` only and respecting `prefers-reduced-motion`.
-- **Balanced Product Detail Page**:
-  - Compact single-row top navigation pairing a history-aware Back button with breadcrumb navigation.
-  - Desktop two-column layout: image tile capped at `80svh` with thumbnails directly below, and a `position: sticky` buy box column that remains anchored in the viewport.
-  - Category-aware reassurance badges ("Roasted to order", "Ships in 1-2 working days", "Free shipping across India").
-- **Rich Editorial Content Sections**:
-  1. *About this coffee / tea / piece*: Narrative story and semantic `<dl>` specifications (altitude, harvest, variety, brew recipe, etc.).
-  2. *Allergen information / Materials & care*: Labelled text chips for consumables ("Contains", "May contain", or "No major allergens") and material/care specifications for brew gear.
-  3. *Inside your parcel*: Detailed checklist of what arrives in the package.
-  4. *Customer reviews*: Authentic verified customer reviews (2–3 per product) formatted with `Intl.DateTimeFormat('en-IN')` and accessible star ratings.
-  5. *You may also like*: Same-category related product suggestions.
-- **Robust Cart Management**: Slide-over drawer on desktop, bottom sheet on mobile, with line item collapse animation (`grid-template-rows: 1fr to 0fr`) and duplicate-guarded dispatch.
-- **Accessibility & Contrast**: Accessible `aria-live` announcements for cart additions and line removals, focus trapping, full keyboard navigation, and WCAG AA/AAA compliant warm-contrast design tokens.
-- **INR Currency System**: Realistically priced Indian rupee (₹) amounts formatted via `Intl.NumberFormat` with Indian lakh grouping, computed in integer paise (minor units) to prevent floating-point rounding errors.
-
-> **Note on Sample Content**: Customer reviews, allergen statements, harvest specifics, and tasting narratives in this project represent curated sample content crafted for a fictional roastery store demonstration.
+## Table of Contents
+1. [Overview & Features](#overview--features)
+2. [Technologies Used](#technologies-used)
+3. [Project Structure](#project-structure)
+4. [Prerequisites](#prerequisites)
+5. [Quick Start (Clean Setup)](#quick-start-clean-setup)
+6. [Database Configuration](#database-configuration)
+7. [Environment Variables](#environment-variables)
+8. [Running the Application, Tests & Newman](#running-the-application-tests--newman)
+9. [Frontend Client (Kiln & Leaf Ops)](#frontend-client-kiln--leaf-ops)
+10. [Seed Test Credentials](#seed-test-credentials)
+11. [API Endpoints Reference](#api-endpoints-reference)
+12. [Authorization Matrix](#authorization-matrix)
+13. [Assumptions and Decisions](#assumptions-and-decisions)
+14. [AI Assistance Disclosure](#ai-assistance-disclosure)
+15. [Troubleshooting Guide](#troubleshooting-guide)
 
 ---
 
-## Tech Stack
+## Overview & Features
 
-- **Core**: [React 19](https://react.dev/) + React DOM 19
-- **Build & Dev Server**: [Vite 8](https://vite.dev/) with `@vitejs/plugin-react`
-- **Routing**: [React Router 8](https://reactrouter.com/) (Browser router with `<ScrollRestoration />` and View Transitions)
-- **Language**: TypeScript 5.7 (strict mode enabled, zero `any`, zero `@ts-ignore`)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with `@tailwindcss/vite`
-- **Testing**: [Vitest 5](https://vitest.dev/) (36 tests passing)
-- **Tooling**: ESLint 9 (typescript-eslint, react-hooks, react-refresh) and Prettier
+- **Robust REST API**: Built on Express.js and TypeScript, running strictly under Node.js 20+ / 24+.
+- **Authentication & Security**:
+  - JWT HS256 authentication with explicit algorithm validation.
+  - Constant-time dummy bcrypt comparisons on unknown emails to prevent username enumeration and timing side-channel leaks.
+  - Password hashes never leaked in any response.
+  - Helmet HTTP security headers and restricted CORS.
+  - Configurable rate limiting on auth routes (`express-rate-limit`).
+- **Role-Based Access Control (RBAC)**:
+  - Database-backed role verification on every request (tokens never self-assert roles).
+  - Strict resource isolation: users can only view and edit their own tasks.
+  - Existence hiding: unauthorized attempts to view or edit another user's task return `404 Not Found` (never `403`), preventing ID enumeration.
+  - Admins can view all tasks, search across owners, edit any task, and update task status via a dedicated `PATCH` endpoint.
+- **Strict Data Validation & Error Handling**:
+  - Zod schemas validating bodies, queries, and route parameters.
+  - Strict bodies on mutations, forbidding rogue or unpermitted fields.
+  - Unified JSON error envelope: `{ "error": { "code", "message", "details"? } }`.
+- **Database & Migrations**:
+  - PostgreSQL 16 with Prisma ORM.
+  - Automated, tool-generated migrations (`prisma/migrations/*/migration.sql`) rather than manual raw dumps.
+  - Fully idempotent database seeder (`prisma/seed.ts`).
+- **Dual Verification**:
+  - Vitest + Supertest integration tests running on a dedicated PostgreSQL schema (`?schema=test`).
+  - Automated Newman test suite executing a complete Postman collection against the live API.
 
 ---
 
-## Technical Deep Dive: Architecture & Implementation
+## Technologies Used
 
-### 1. CSS Subgrid Card Layout
-Historically, card grids with varying title lengths forced developers to choose between awkward fixed heights (e.g. `height: 2.7em` on titles leaving dead whitespace for 1-line titles) or misaligned bottoms where price rows and buttons staggered unevenly across columns.
-
-Kiln & Leaf solves this with modern **CSS Subgrid**:
-- The parent container (`ProductGrid`) defines columns and auto-placed rows.
-- Each `<article>` card spans rows (`row-span-4` on desktop, `row-span-5` on touch) and declares `grid-template-rows: subgrid`.
-- Direct children (image tile, title `<h3>`, meta subtitle `<p>`, rating/price `<div>`, and touch action button) map 1:1 to the shared outer grid tracks.
-- As a result, if any card in a row has a 2-line title, that track expands for the entire row simultaneously; 1-line titles sit comfortably within the track without dead gaps, and all subsequent rows (meta, price, and actions) align horizontally with pixel precision.
-
-### 2. FLIP Grid Reorder (`useFlipGrid`)
-When a user sorts the catalog (e.g. price low to high), standard DOM re-ordering produces an abrupt visual teleport.
-Kiln & Leaf uses the **FLIP** (First, Last, Invert, Play) technique:
-1. **First**: Before the new DOM layout commits, the hook snapshots the bounding rectangles (`getBoundingClientRect`) of all visible cards.
-2. **Last**: React updates the DOM order based on the new sort.
-3. **Invert**: The hook measures the new positions, calculates the delta (`dx = old.left - new.left`, `dy = old.top - new.top`), and immediately applies an inverse transform (`translate(dx, dy)`).
-4. **Play**: The hook triggers a CSS Web Animation transitioning the transform back to `translate(0, 0)` over 320ms using an easing curve (`cubic-bezier(0.16, 1, 0.3, 1)`).
-- **Guards**: Animates only `transform` (no layout thrashing), caps animation to viewport cards (max 16 items), cancels in-flight animations on rapid sort clicks, and completely skips execution under `prefers-reduced-motion: reduce`. When the product *set* changes (filter or search), the component remounts with staggered card fade-ins instead.
-
-### 3. Hover Crossfade vs Touch Quick-Add
-- **Hover Devices**: Desktop shoppers browsing the grid experience an instant crossfade from the pack visual to the product's `-notes.svg` tasting illustration via CSS opacity transitions. To keep the card clean, the ghost button is replaced by an absolute quick-add button positioned at the bottom of the image tile that slides up (`translateY(8px)` to `0`) and fades in on hover or keyboard `:focus-within` / `:focus-visible`. The overlay `<Link>` and button are siblings (not nested) to avoid invalid HTML interactive nesting.
-- **Touch Devices**: Touch interfaces cannot hover; tapping an image tile should directly navigate to the product. Therefore, on `@media (hover: none)` devices, the hover button is hidden, and an accessible, full-width touch button (>= 44px tall) is rendered below the price row.
-
-### 4. Sticky Detail Column & First-Fold Balance
-On wide desktop viewports (1440x900), traditional e-commerce pages often push the buy button below the fold if product imagery is tall, or leave empty white space below the info box.
-- The image tile height is bounded by `max-h-[80svh]`, with thumbnail selectors sitting directly below the main image.
-- The info column (title, price, description, specs, add button, and reassurance badges) is declared `position: sticky; top: 6rem; align-self: start`. When users scroll down through the extended editorial sections (About story, Allergen table, Parcel contents, Customer reviews), the buy box stays in convenient view.
-
-### 5. Multi-Layer Data Model & Reviews Architecture
-- `products.json` maintains lean, structured records enriched with:
-  - `about`: 2–3 sentence terroir narrative.
-  - `details`: 3–6 key-value specifications adapted by category (Process, Altitude, Harvest, Variety for coffees; Garden, Flush, Grade, Steeping temp for teas; Material, Capacity, Dimensions, Care for gear).
-  - `allergens`: Accurate allergen disclosures (`contains`, `mayContain`, and facility disclaimer) for consumables.
-  - `box`: Itemized parcel packing list.
-- `reviews.json` houses independent verified customer reviews with integer ratings (1–5), authentic customer voices mentioning brew methods and tasting experiences, and valid `productId` references.
-- **Headline Integrity**: The product detail summary shows the product's own store rating and review count, while the reviews list is truthfully labelled "Recent reviews".
+- **Runtime & Language**: Node.js v24.14.1, TypeScript 5.7
+- **Web Framework**: Express 4.21
+- **Database & ORM**: PostgreSQL 16 (Alpine), Prisma ORM 6.4
+- **Security & Cryptography**: `bcryptjs` (pure JS, cross-platform stability), `jsonwebtoken`, `helmet`, `cors`
+- **Validation**: Zod 3.24
+- **Rate Limiting**: `express-rate-limit` 7.5
+- **Testing**: Vitest 3.2, Supertest 7.0, Newman (Postman Collection Runner)
+- **Containerization**: Docker Compose (PostgreSQL 16)
+- **Frontend Client**: React 19, Vite 8, React Router 8, Tailwind CSS v4
 
 ---
 
 ## Project Structure
 
-```
-src/
-├── main.tsx                         # DOM entrypoint
-├── App.tsx                          # App providers (Cart, CartDrawer) & router mount
-├── router.tsx                       # Route definitions (browser router)
-├── index.css                        # Design tokens, motion system & animations
-├── types/
-│   ├── product.ts                   # Product, Category, RoastLevel, ArtKind, Allergen types
-│   └── review.ts                    # Review interface
-├── data/
-│   ├── products.json                # Single source of truth (28 products)
-│   └── reviews.json                 # Verified customer reviews
-├── lib/
-│   ├── currency.ts                  # formatINR, toMinor, fromMinor helpers
-│   ├── productFilters.ts            # Diacritic-insensitive filtering & sorting pipeline
-│   └── styles.ts                    # Category tile backgrounds & button tokens
-├── services/
-│   ├── productService.ts            # Typed async fetching & sync lookup
-│   └── reviewService.ts            # Typed review lookup by productId
-├── context/
-│   ├── CartContext.tsx              # CartProvider & useCart hook (paise math & sync)
-│   ├── CartDrawerContext.tsx        # Isolated UI drawer state & lastAddedId tracking
-│   ├── cartReducer.ts               # Pure cart reducer & action types
-│   └── cartStorage.ts               # Validated localStorage parsing & save
-├── hooks/
-│   ├── useProducts.ts               # Catalog query hook with loading/error/retry
-│   ├── useProduct.ts                # Single product query with not-found state
-│   ├── useFlipGrid.ts               # FLIP animation hook for sort reordering
-│   ├── useScrollReveal.ts           # IntersectionObserver hook for subtle on-scroll reveals
-│   ├── useDebounce.ts               # Input debounce helper (250ms)
-│   └── useDocumentTitle.ts          # Per-page title synchronization
-├── components/
-│   ├── layout/                      # Layout, Navbar, Footer, CartDrawer
-│   ├── product/                     # ProductCard, ProductGrid, ProductSection, ProductAbout,
-│   │                                # AllergenInfo, MaterialsCare, ParcelContents, ReassuranceRows,
-│   │                                # ReviewSummary, ReviewCard, ReviewList, SearchBar, CategoryPills, etc.
-│   ├── cart/                        # CartLineItem, CartSummary
-│   ├── common/                      # QuantityStepper, StarRating, SafeImage, Logo, Icons
-│   └── feedback/                    # ProductGridSkeleton, ProductDetailSkeleton, EmptyState, ErrorState
-├── pages/
-│   ├── Home.tsx                     # Storefront catalog & filter view
-│   ├── ProductDetail.tsx            # Detail view with sticky buy box & editorial sections
-│   ├── Cart.tsx                     # Full-page cart overview & order summary
-│   └── NotFound.tsx                 # Generic 404 page
-└── __tests__/
-    ├── dataIntegrity.test.ts        # Product IDs, disk images, prices, about, allergens, reviews
-    ├── cartReducer.test.ts          # Add, qty cap, clamp, remove, out-of-stock tests
-    ├── cartStorage.test.ts          # JSON corruption, clamping, deduplication tests
-    ├── productFilters.test.ts       # Diacritics, multi-word, categories, sorting tests
-    └── currency.test.ts             # Lakh grouping, paise conversion tests
+```text
+Kanishka-Node/
+├── client/                     # React 19 / Vite UI (Kiln & Leaf Ops)
+│   ├── public/                 # Favicon and client assets
+│   ├── src/                    # Client app, components, auth context, API client
+│   ├── package.json            # Client-specific scripts and dependencies
+│   ├── vite.config.ts          # Vite bundler configuration
+│   └── .env.example            # Client environment variables
+├── docker-compose.yml          # PostgreSQL 16 Alpine container with healthcheck
+├── prisma/                     # Database schema, migrations, and seed
+│   ├── schema.prisma           # Prisma schema definition
+│   ├── seed.ts                 # Idempotent TypeScript seeder
+│   └── migrations/             # Tool-generated migration files
+│       └── 20261009085423_init/
+│           └── migration.sql
+├── postman/                    # API test artifacts
+│   ├── Kanishka_Ops.postman_collection.json # Postman 2.1 collection
+│   └── Local.postman_environment.json       # Environment variables for Postman
+├── src/                        # Express API (TypeScript)
+│   ├── app.ts                  # App factory (used by integration tests)
+│   ├── server.ts               # Server startup & graceful shutdown
+│   ├── config/
+│   │   └── env.ts              # Zod-validated environment config
+│   ├── lib/                    # Helpers: prisma, jwt, password, errors, status, asyncHandler
+│   ├── middleware/             # authenticate, requireRole, validate, rateLimit, notFound, errorHandler
+│   └── modules/
+│       ├── auth/               # routes, controller, service, schemas
+│       ├── tasks/              # routes, controller, service, schemas
+│       └── admin/              # routes, controller, service
+├── tests/                      # Integration test suites (Vitest + Supertest)
+│   ├── setup.ts                # DB cleanup utilities
+│   ├── status.test.ts          # Status mapping unit test
+│   ├── auth.test.ts            # Auth & JWT tests
+│   ├── tasks.test.ts           # Tasks & full authorization matrix tests
+│   └── admin.test.ts           # Admin stats & users tests
+├── .env.example                # Sample environment variables
+├── .env.test                   # Isolated test environment variables
+├── vitest.config.ts            # Test runner configuration
+├── package.json                # Root package configuration
+├── tsconfig.json               # Backend TypeScript configuration
+└── README.md                   # Complete documentation
 ```
 
 ---
 
-## Setup & Scripts
+## Prerequisites
+
+- **Node.js**: `v20.x` or `v24.x` (verified on `v24.14.1`)
+- **npm**: `v10.x` or `v11.x`
+- **Docker & Docker Compose**: Docker 26+ / Compose v2+ (for running PostgreSQL locally)
+  *(Alternatively, an external PostgreSQL connection string can be supplied via `DATABASE_URL`)*.
+
+---
+
+## Quick Start (Clean Setup)
+
+Follow these verbatim steps to start the database, apply migrations, seed sample accounts, and boot the API:
 
 ```bash
-# Install dependencies
+# 1. Start the PostgreSQL container
+docker compose up -d
+
+# 2. Configure environment variables
+cp .env.example .env
+
+# 3. Install backend dependencies
 npm install
 
-# Start development server
+# 4. Apply migrations to the database
+npm run db:migrate
+
+# 5. Seed test users and roastery tasks
+npm run db:seed
+
+# 6. Start the API development server
 npm run dev
+```
 
-# Run unit test suite (Vitest - 36 tests)
-npm test
+The API will be running on `http://localhost:4000`. Healthcheck is reachable at `http://localhost:4000/api/health`.
 
-# Run tests in watch mode
-npm run test:watch
+---
 
-# Generate product packaging SVGs (skips Brew Gear)
-npm run art
+## Database Configuration
 
-# Typecheck and production bundle build
+The system uses PostgreSQL 16. Two methods of database setup are supported:
+
+### 1. Local Docker Setup (Default)
+The provided `docker-compose.yml` configures an isolated PostgreSQL 16 instance:
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kanishka-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kanishka_ops
+```
+Connection URL in `.env`:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/kanishka_ops?schema=public"
+```
+
+### 2. External PostgreSQL (e.g. Neon, Supabase, RDS)
+Simply set `DATABASE_URL` in `.env` to your external connection string:
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require&schema=public"
+```
+Then run `npm run db:migrate` and `npm run db:seed`.
+
+---
+
+## Environment Variables
+
+| Variable | Description | Example / Default | Required |
+|---|---|---|---|
+| `PORT` | Port for the Express HTTP server | `4000` | No (default 4000) |
+| `NODE_ENV` | Application environment (`development`, `production`, `test`) | `development` | No |
+| `DATABASE_URL` | PostgreSQL connection URL with schema parameter | `postgresql://postgres:postgres@localhost:5432/kanishka_ops?schema=public` | **Yes** |
+| `JWT_SECRET` | Secret key for signing HS256 tokens (min 32 characters) | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | **Yes** |
+| `JWT_EXPIRES_IN` | Token validity duration | `8h` | No (default `8h`) |
+| `BCRYPT_ROUNDS` | Cost factor for password hashing | `10` | No (default `10`) |
+| `CLIENT_ORIGIN` | Allowed origin for CORS | `http://localhost:5173` | No |
+| `RATE_LIMIT_ENABLED` | Toggle IP-based rate limiting on authentication routes | `true` | No (default `true`) |
+| `AUTH_RATE_LIMIT_MAX`| Max requests per 15 minutes window | `30` | No (default `30`) |
+| `ADMIN_OTP_ENABLED` | Enable optional 2FA OTP for admin dashboard | `false` | No (default `false`) |
+| `OTP_DELIVERY` | OTP delivery mechanism (`console` or `smtp`) | `console` | No |
+| `ALLOW_SEED` | Required to permit database seeding in `production` | `false` | No |
+
+---
+
+## Running the Application, Tests & Newman
+
+### 1. Development Server
+```bash
+npm run dev
+```
+
+### 2. Production Build & Start
+```bash
 npm run build
+npm start
+```
 
-# Preview production build locally
-npm run preview
+### 3. Integration Tests (Vitest + Supertest)
+Integration tests run against the isolated `test` PostgreSQL schema (`?schema=test`), leaving seeded development data untouched:
+```bash
+npm test
+```
 
-# Lint code with ESLint
+### 4. Postman Collection Verification (Newman)
+Run the complete Postman test suite with 0 failures:
+```bash
+# Ensure the API is running in another terminal (npm run dev)
+npm run postman
+```
+
+### 5. Linting & Formatting
+```bash
 npm run lint
-
-# Format code with Prettier
 npm run format
 ```
 
 ---
 
-## Testing (`npm test`)
+## Frontend Client (Kiln & Leaf Ops)
 
-The test suite runs with **Vitest 5** and contains **36 unit and integration tests** executing in < 250ms:
+The frontend UI is located inside `client/`. It reuses the editorial design system (Fraunces serif headings, warm paper/ink palette, DM Sans, accessible contrast ratios):
 
-1. **`dataIntegrity.test.ts`**:
-   - Unique product IDs across the entire catalog.
-   - Verifies that every single image and gallery path resolves to an actual file on disk.
-   - Verifies positive integer prices and valid 0–5 ratings.
-   - Enforces that every product has a non-empty `about` narrative, at least 3 `details` rows, and an itemized `box` array.
-   - Verifies consumables have valid `allergens` and gear has `materials`.
-   - Validates that each product has 2–3 reviews with integer 1–5 ratings, unique review IDs, and valid product references.
-2. **`cartReducer.test.ts`**: Verifies adding items, quantity capping at 20 units, clamping, line removal, and rejecting out-of-stock items.
-3. **`cartStorage.test.ts`**: Tests `parseStoredCart` resilience against `null`, malformed JSON, non-array types, primitive strings, unregistered catalog IDs, non-finite/negative/oversized quantities, and duplicates.
-4. **`productFilters.test.ts`**: Verifies diacritic stripping (`"volcan"` finds `"Antigua Volcán de Fuego"`), multi-word matching where all terms must appear (`"ethiopia washed"`), category filtering, sort orders, and empty result sets.
-5. **`currency.test.ts`**: Tests Indian numbering format with lakh grouping (`₹1,25,000`), integer formatting without `.00`, decimal handling, paise conversions, and rounding protections.
+```bash
+# Navigate to the client directory
+cd client
+
+# Install client dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+The client runs at `http://localhost:5173`.
 
 ---
 
-## Deployment & Routing
+## Seed Test Credentials
 
-The project uses client-side single-page app (SPA) routing with React Router.
+The database seeder (`npm run db:seed`) creates three accounts demonstrating regular user operation and admin oversight:
 
-- **Vercel**: Configured in `vercel.json` with rewrite rules directing all paths to `/index.html`:
-  ```json
-  {
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ]
+| Role | Name | Email | Password | Purpose |
+|---|---|---|---|---|
+| **Admin** | Operations Admin | `admin@example.com` | `Admin@123` | Full administrative visibility, user directory, status updates |
+| **User** | Divya Roaster | `user@example.com` | `User@123` | Primary regular user; manages own roasting/cleaning tasks |
+| **User** | Kanishka Cupper | `user2@example.com` | `User@1234` | Second regular user; verifies task isolation between users |
+
+---
+
+## API Endpoints Reference
+
+All endpoints are prefixed with `/api`. Errors conform to:
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR | UNAUTHORIZED | FORBIDDEN | NOT_FOUND | CONFLICT | RATE_LIMITED | INTERNAL_ERROR",
+    "message": "Human readable explanation",
+    "details": []
   }
-  ```
-- **Netlify Equivalent**: If deploying to Netlify, include `/* /index.html 200` in a `public/_redirects` file or specify the redirect in `netlify.toml`.
+}
+```
+
+### 1. System & Health
+- **`GET /api/health`**
+  - **Auth**: None
+  - **Description**: Verifies API connectivity and executes `SELECT 1` on PostgreSQL.
+  - **Response 200**:
+    ```json
+    { "status": "ok", "database": "connected", "timestamp": "2026-10-09T09:00:00.000Z" }
+    ```
+
+### 2. Authentication
+- **`POST /api/auth/register`**
+  - **Auth**: None (Rate limited)
+  - **Body**: `{ "name": "string", "email": "string", "password": "string" }`
+  - **Description**: Creates a user. Role is strictly forced to `user` (ignoring any client-supplied role).
+  - **Response 201**:
+    ```json
+    {
+      "user": {
+        "id": 4,
+        "name": "Alex",
+        "email": "alex@example.com",
+        "role": "user",
+        "createdAt": "2026-10-09T09:00:00.000Z",
+        "updatedAt": "2026-10-09T09:00:00.000Z"
+      }
+    }
+    ```
+- **`POST /api/auth/login`**
+  - **Auth**: None (Rate limited)
+  - **Body**: `{ "email": "string", "password": "string" }`
+  - **Description**: Authenticates user. Returns JWT and user payload. Returns 401 on incorrect credentials without leaking if email exists.
+  - **Response 200**:
+    ```json
+    {
+      "token": "eyJhbGciOiJIUzI1NiIsIn...",
+      "user": { "id": 1, "name": "Operations Admin", "email": "admin@example.com", "role": "admin", ... }
+    }
+    ```
+- **`GET /api/auth/me`**
+  - **Auth**: Bearer Token
+  - **Description**: Retrieves current user profile from DB.
+  - **Response 200**:
+    ```json
+    {
+      "user": { "id": 1, "name": "Operations Admin", "email": "admin@example.com", "role": "admin", ... }
+    }
+    ```
+
+### 3. Tasks Management
+- **`GET /api/tasks`**
+  - **Auth**: Bearer Token
+  - **Query**: `page` (default 1), `limit` (default 10, max 50), `status` ("Pending" \| "In Progress" \| "Testing" \| "Completed"), `q` (search), `userId` (Admin only).
+  - **Description**: Users see only their own tasks; admins see all tasks with owner details.
+  - **Response 200**:
+    ```json
+    {
+      "data": [
+        {
+          "id": 1,
+          "userId": 1,
+          "title": "Roast batch ET-014",
+          "description": "14 min profile",
+          "status": "In Progress",
+          "createdAt": "2026-10-09T09:00:00.000Z",
+          "updatedAt": "2026-10-09T09:00:00.000Z",
+          "user": { "id": 1, "name": "Operations Admin", "email": "admin@example.com" }
+        }
+      ],
+      "meta": { "page": 1, "limit": 10, "total": 1, "totalPages": 1 }
+    }
+    ```
+- **`POST /api/tasks`**
+  - **Auth**: Bearer Token
+  - **Body**: `{ "title": "string", "description"?: "string" }`
+  - **Description**: Creates a task. `status` is forced to `"Pending"`. `userId` is pulled from JWT.
+  - **Response 201**: `{ "task": { ... } }`
+- **`GET /api/tasks/:id`**
+  - **Auth**: Bearer Token
+  - **Description**: Task detail. Accessible to task owner or admin. Returns 404 for non-owners (hiding existence).
+  - **Response 200**: `{ "task": { ... } }`
+- **`PUT /api/tasks/:id`**
+  - **Auth**: Bearer Token
+  - **Body**: `{ "title"?: "string", "description"?: "string" }` (at least one required).
+  - **Description**: Updates title or description. Strict: ANY `status` field -> 400.
+  - **Response 200**: `{ "task": { ... } }`
+- **`PATCH /api/tasks/:id/status`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Body**: `{ "status": "Pending" | "In Progress" | "Testing" | "Completed" }`
+  - **Description**: Updates task status. Regular users receive 403 Forbidden.
+  - **Response 200**: `{ "task": { ... } }`
+
+### 4. Admin Management
+- **`GET /api/admin/stats`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Response 200**:
+    ```json
+    {
+      "totals": { "users": 3, "tasks": 7 },
+      "byStatus": {
+        "Pending": 2,
+        "In Progress": 2,
+        "Testing": 1,
+        "Completed": 2
+      }
+    }
+    ```
+- **`GET /api/admin/users`**
+  - **Auth**: Bearer Token (**Admin Only**)
+  - **Response 200**:
+    ```json
+    {
+      "users": [
+        {
+          "id": 1,
+          "name": "Operations Admin",
+          "email": "admin@example.com",
+          "role": "admin",
+          "taskCount": 2,
+          "createdAt": "2026-10-09T09:00:00.000Z",
+          "updatedAt": "2026-10-09T09:00:00.000Z"
+        }
+      ]
+    }
+    ```
+
+---
+
+## Authorization Matrix
+
+| Actor | Action / Route | Expected Outcome |
+|---|---|---|
+| **Anonymous** | Any `/api/tasks*` or `/api/admin*` | `401 Unauthorized` |
+| **User A** | List `/api/tasks` | Returns **only User A's tasks** |
+| **User A** | Create `/api/tasks` | `201 Created` (status forced to `Pending`) |
+| **User A** | View own task `/api/tasks/:id` | `200 OK` |
+| **User A** | Edit own task `/api/tasks/:id` | `200 OK` (title/description updated) |
+| **User A** | Edit own task with `status` in PUT body | `400 Bad Request` ("status can only be changed via PATCH...") |
+| **User A** | View or edit User B's task | `404 Not Found` (never leaks task existence) |
+| **User A** | `PATCH /api/tasks/:id/status` (any task) | `403 Forbidden` |
+| **User A** | Any `/api/admin/*` route | `403 Forbidden` |
+| **User A** | Register with `role: "admin"` in body | Created strictly as `role: "user"` |
+| **Admin** | List `/api/tasks` | Returns **all tasks** with owner info |
+| **Admin** | View or edit any user's task | `200 OK` |
+| **Admin** | `PATCH /api/tasks/:id/status` | `200 OK` (status updated) |
+| **Admin** | `PATCH /api/tasks/:id/status` with invalid status | `400 Bad Request` |
+| **Admin** | Access `/api/admin/stats` and `/api/admin/users` | `200 OK` |
+| **Any** | Tampered token, expired token, deleted user token | `401 Unauthorized` |
+
+---
+
+## Assumptions and Decisions
+
+1. **Role Source of Truth**: Roles are **never** trusted from JWT payload claims. The `authenticate` middleware loads the user directly from the database on every request. If a user is deleted or their role is modified, changes take effect immediately on their next request.
+2. **Admin Tasks & Visibility**: Admins have complete operational oversight and see all tasks created by all users across the system. Tasks created by an admin belong to that admin account.
+3. **Task Status Lifecycle**: On creation (`POST /api/tasks`), status is strictly initialized to `"Pending"`. Clients cannot specify initial status.
+4. **Dedicated Status Modification Route**: Status transitions must occur through `PATCH /api/tasks/:id/status`, which is locked to administrators. Attempts to pass `status` to `PUT /api/tasks/:id` are rejected with `400 Bad Request`.
+5. **Information Leakage Prevention**: When a regular user attempts to access or modify a task belonging to another user, the API responds with `404 Not Found` rather than `403 Forbidden`. This prevents attackers from probing which task IDs exist.
+6. **No DELETE Endpoint**: The take-home specification did not define a task deletion endpoint, focusing instead on task lifecycle transitions. Consequently, deletion is omitted to preserve task audit history.
+7. **Tokens & Sessions**: Short/medium-lived JWTs (default 8 hours) signed via HMAC SHA-256 (`HS256`). For this intern assessment demo, tokens are securely held in client `localStorage` with error interceptors that clear storage and redirect to login upon 401. In an enterprise banking deployment, `httpOnly`, `SameSite=Strict`, `Secure` cookies with refresh token rotation would be preferred.
+8. **Tool-Generated Migrations**: `prisma/migrations/*/migration.sql` files are tool-generated by Prisma Migrate, guaranteeing schema consistency and reproducible migrations rather than unversioned raw SQL scripts.
+9. **Password Validation**: Passwords must be between 8 and 72 characters (bcrypt ceiling) and include at least one letter and one number.
+10. **Email Normalization**: Emails are trimmed, lowercased, and enforced unique.
+11. **Client Design System Reuse**: The React client reuses the artisanal aesthetic (Fraunces typography, warm paper tones, accessible contrast ratios) from the candidate's prior React showcase, adapted into "Kiln & Leaf Ops".
+
+---
+
+## AI Assistance Disclosure
+
+AI tooling was utilized during development to assist with boilerplate scaffolding, rapid test case generation, and documentation drafting. All architectural decisions, security boundaries, Prisma relational schema designs, and authorization matrix tests were authored, verified, and audited by the candidate.
+
+---
+
+## Troubleshooting Guide
+
+- **Docker daemon is not running**: Ensure Docker Desktop is started (`Get-Process *docker*`).
+- **Port 5432 already in use**: If a local Postgres service is already running on port 5432, you can either stop the local service (`net stop postgresql-x64-16`) or change the Docker host port mapping in `docker-compose.yml` to `5433:5432` and update `DATABASE_URL` accordingly.
+- **Port 4000 already in use**: Change `PORT=4001` in your `.env` file.
+- **Prisma migration errors on clean clone**: Run `npm run db:reset` in development to recreate the database from migrations.
