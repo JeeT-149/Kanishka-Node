@@ -121,7 +121,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
         <div>
           <label htmlFor="login-email" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-            Email Address
+            Email Address <span className="text-red-500">*</span>
           </label>
           <input
             id="login-email"
@@ -147,7 +147,7 @@ export default function Login() {
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="login-password" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-              Password
+              Password <span className="text-red-500">*</span>
             </label>
           </div>
           <div className="relative mt-1.5">

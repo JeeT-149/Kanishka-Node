@@ -108,7 +108,7 @@ export default function Register() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
         <div>
           <label htmlFor="reg-name" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-            Full Name
+            Full Name <span className="text-red-500">*</span>
           </label>
           <input
             id="reg-name"
@@ -133,7 +133,7 @@ export default function Register() {
 
         <div>
           <label htmlFor="reg-email" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-            Email Address
+            Email Address <span className="text-red-500">*</span>
           </label>
           <input
             id="reg-email"
@@ -158,12 +158,30 @@ export default function Register() {
 
         <div>
           <div className="flex items-center justify-between">
-            <div className="relative inline-flex items-center gap-1.5">
-              <label htmlFor="reg-password" className="block text-xs font-semibold uppercase tracking-wider text-mute">
-                Password
-              </label>
+            <label htmlFor="reg-password" className="block text-xs font-semibold uppercase tracking-wider text-mute">
+              Password <span className="text-red-500">*</span>
+            </label>
+          </div>
 
-              {/* Notice symbol with hover dialogue */}
+          <div className="relative mt-1.5">
+            <input
+              id="reg-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isSubmitting}
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? "reg-password-error" : undefined}
+              className={`block w-full rounded-ctl border pl-3.5 pr-16 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
+                fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
+              }`}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+            />
+
+            {/* Right side controls: Notice symbol and Eye button */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2.5 gap-1">
+              {/* Notice symbol with hover/focus dialogue */}
               <div
                 className="relative inline-flex items-center"
                 onMouseEnter={() => setShowDialogue(true)}
@@ -174,16 +192,18 @@ export default function Register() {
                   onClick={() => setShowDialogue((prev) => !prev)}
                   aria-label="Password requirements"
                   aria-expanded={showDialogue}
-                  className="rounded-full p-0.5 text-mute transition hover:bg-line/40 hover:text-ink focus:outline-none"
+                  className="rounded-full p-1 text-mute transition hover:bg-line/40 hover:text-ink focus:outline-none"
                 >
-                  <IconInfo className="h-3.5 w-3.5" />
+                  <IconInfo className="h-4 w-4" />
                 </button>
 
-                {/* Dialogue box anchored to notice icon */}
+                {/* Dialogue box anchored to the right side above the field */}
                 {showDialogue && (
                   <div
                     role="tooltip"
-                    className="absolute left-0 bottom-full z-30 mb-2 w-64 rounded-card border border-line bg-card p-3.5 shadow-lg"
+                    className="absolute right-0 bottom-full z-30 mb-2 w-64 rounded-card border border-line bg-card p-3.5 shadow-lg pointer-events-auto"
+                    onMouseEnter={() => setShowDialogue(true)}
+                    onMouseLeave={() => setShowDialogue(false)}
                   >
                     <p className="border-b border-line pb-1.5 text-xs font-semibold uppercase tracking-wider text-ink">
                       Password Requirements
@@ -208,33 +228,18 @@ export default function Register() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          <div className="relative mt-1.5">
-            <input
-              id="reg-password"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isSubmitting}
-              aria-invalid={Boolean(fieldErrors.password)}
-              aria-describedby={fieldErrors.password ? "reg-password-error" : undefined}
-              className={`block w-full rounded-ctl border pl-3.5 pr-10 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-accent ${
-                fieldErrors.password ? "border-accent bg-accent-soft/20" : "border-line bg-card hover:border-ink/40"
-              }`}
-              placeholder="At least 8 characters"
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-mute transition hover:text-ink focus:outline-none"
-            >
-              {showPassword ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
-            </button>
+              {/* Eye toggle button */}
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="rounded-full p-1 text-mute transition hover:text-ink focus:outline-none"
+              >
+                {showPassword ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {fieldErrors.password && (
             <p id="reg-password-error" className="mt-1 text-xs text-accent">
